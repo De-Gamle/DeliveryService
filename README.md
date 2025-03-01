@@ -19,10 +19,8 @@ DeliveryService er en microservice til håndtering af pakkeudlevering i et logis
 - **BackgroundService** der lytter på køen og skriver data til en CSV-fil i en Docker-volumen
 
 ## 🛠 Arkitektur
-```plaintext
-┌────────────────────┐        ┌──────────────────┐
-│  ShippingService  │  →→→  │  RabbitMQ Queue  │
-└────────────────────┘        └──────────────────┘
+![Shipping Diagram](DeliveryService.svg)
+
          ↓                              ↓
 ┌────────────────────┐        ┌────────────────────┐
 │  DeliveryService  │  →→→  │  CSV Output File  │
