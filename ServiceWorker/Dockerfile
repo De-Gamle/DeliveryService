@@ -7,10 +7,10 @@ RUN dotnet restore
 
 # Copy all files and build
 COPY . .
-RUN dotnet build "ServiceWorker.csproj" -c Release -o /app/build
+RUN dotnet build "ServiceWorker/ServiceWorker.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "ServiceWorker.csproj" -c Release -o /app/publish
+RUN dotnet publish "ServiceWorker/ServiceWorker.csproj" -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/runtime:8.0 AS final
 WORKDIR /app
