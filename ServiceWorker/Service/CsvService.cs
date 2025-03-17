@@ -39,7 +39,7 @@ namespace ServiceWorker.Service
                 
                 // Write data
                 await writer.WriteLineAsync(request.ToCsvString());
-                _logger.LogInformation($"Added shipment with ID {request.Id} to {fileName}");
+                _logger.LogInformation($"Added shipment with ID {request.PackageId} to {fileName}");
             }
             catch (Exception ex)
             {

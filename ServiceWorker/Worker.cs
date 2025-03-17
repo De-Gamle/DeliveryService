@@ -38,7 +38,8 @@ namespace ServiceWorker
             {
                 var factory = new ConnectionFactory 
                 { 
-                    HostName = _configuration["RabbitMQ:HostName"] ?? "rabbitmq",
+                    HostName = _configuration["RabbitMQ:HostName"] ?? "host.docker.internal",
+                    Port = int.Parse(_configuration["RabbitMQ:Port"] ?? "5672"),
                     UserName = _configuration["RabbitMQ:UserName"] ?? "guest",
                     Password = _configuration["RabbitMQ:Password"] ?? "guest"
                 };
@@ -98,7 +99,7 @@ namespace ServiceWorker
                         _logger.LogInformation("Current bookings (sorted):");
                         foreach (var booking in sortedBookings)
                         {
-                            _logger.LogInformation($"- {booking.Id}: {booking.CustomerName}, Due: {booking.DeliveryDate}");
+                            _logger.LogInformation($"- {booking.PackageId}: {booking.CustomerName}, Due: {booking.DeliveryAddress}");
                         }
                         
                         // Acknowledge message

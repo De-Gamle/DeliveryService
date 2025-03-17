@@ -16,12 +16,12 @@ public class BookingService
     public void Put(ShippingRequest request)
     {
         _bookings.Add(request);
-        _logger.LogInformation($"Added booking with ID: {request.Id}");
+        _logger.LogInformation($"Added booking with ID: {request.PackageId}");
     }
 
     public IEnumerable<ShippingRequest> GetAll()
     {
         // Return sorted list with most pressing bookings first (based on delivery date)
-        return _bookings.OrderBy(b => b.DeliveryDate).ToList();
+        return _bookings.OrderBy(b => b.PackageId).ToList();
     }
 }

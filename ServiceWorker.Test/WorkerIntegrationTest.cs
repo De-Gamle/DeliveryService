@@ -2,14 +2,15 @@
 using Moq;
 using RabbitMQ.Client;
 using ServiceWorker.Models;
-using ServiceWorker.Service;
+using System;
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using ServiceWorker;
 using Xunit;
 
-public class WorkerIntegrationTests
+public class WorkerIntegrationTests : IDisposable
 {
     private readonly Mock<ILogger<Worker>> _mockLogger;
     private readonly IConnection _connection;
@@ -20,43 +21,89 @@ public class WorkerIntegrationTests
     {
         _mockLogger = new Mock<ILogger<Worker>>();
 
-        // Opret RabbitMQ-forbindelsen (brug en eksisterende RabbitMQ-tjeneste eller lokal)
-        var factory = new ConnectionFactory() { HostName = "localhost" };
-        _connection = factory.CreateConnection();
-        _channel = _connection.CreateModel();
-        _channel.QueueDeclare(queue: QueueName, durable: true, exclusive: false, autoDelete: false, arguments: null);
+        try 
+        {
+            Console.WriteLine("Forsøger at oprette forbindelse til RabbitMQ...");
+            
+            var factory = new ConnectionFactory() 
+            { 
+                HostName = "host.docker.internal", 
+                Port = 5672,
+                UserName = "guest",
+                Password = "guest"
+            };
+            
+            _connection = factory.CreateConnection();
+            Console.WriteLine("Forbindelse oprettet!");
+            
+            _channel = _connection.CreateModel();
+            Console.WriteLine("Kanal oprettet!");
+            
+            _channel.QueueDeclare(queue: QueueName, durable: true, exclusive: false, autoDelete: false, arguments: null);
+            Console.WriteLine($"Kø {QueueName} oprettet eller åbnet!");
+            
+            _channel.QueuePurge(QueueName);
+            Console.WriteLine($"Kø {QueueName} renset!");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Fejl ved tilslutning til RabbitMQ: {ex.Message}");
+            Console.WriteLine($"StackTrace: {ex.StackTrace}");
+            throw;
+        }
     }
 
     [Fact]
     public void Worker_ProcessesMessageFromUploadedFile()
     {
-        // Arrange: Læs filen med data
-        var filePath = "C:/Users/rasmu/Downloads/shipment_data.json";
-        var fileData = File.ReadAllText(filePath);
-
-        // Deserialiser JSON-dataen til et ShippingRequest-objekt
-        var shippingRequest = JsonSerializer.Deserialize<ShippingRequest>(fileData);
-
-        if (shippingRequest != null)
+        try
         {
-            // Send besked til RabbitMQ
+            var filePath = "C:/Users/rasmu/Downloads/shipment_data.json";
+            Xunit.Assert.True(File.Exists(filePath), $"Fil findes ikke: {filePath}");
+            
+            var fileData = File.ReadAllText(filePath);
+            Xunit.Assert.False(string.IsNullOrEmpty(fileData), "Filindhold er tomt");
+            
+            var shippingRequest = JsonSerializer.Deserialize<ShippingRequest>(fileData);
+            Xunit.Assert.NotNull(shippingRequest);
+            
+            Console.WriteLine("ShippingRequest-objekt deserialiseret korrekt");
+
             var message = JsonSerializer.Serialize(shippingRequest);
             var body = Encoding.UTF8.GetBytes(message);
+            
+            var properties = _channel.CreateBasicProperties();
+            properties.Persistent = true;
 
-            _channel.BasicPublish(exchange: "", routingKey: QueueName, basicProperties: null, body: body);
+            Console.WriteLine($"Sender besked: {message}");
+            _channel.BasicPublish(exchange: "", routingKey: QueueName, basicProperties: properties, body: body);
+            Console.WriteLine("Besked sendt til RabbitMQ");
+            
+            Thread.Sleep(5000);
+            
+            var result = _channel.MessageCount(QueueName);
+            Console.WriteLine($"Antal beskeder i kø '{QueueName}': {result}");
+            Xunit.Assert.True(result > 0, $"Beskeden blev ikke sendt til køen. Antal er {result}");
         }
-
-        // Verificer, at beskeden er blevet sendt til køen (kun test på, at RabbitMQ kommunikerer)
-        var result = _channel.MessageCount(QueueName);
-        Xunit.Assert.True(result > 0, "Message was not sent to the queue");
-
-        // Eventuelt: Verificer, om arbejderen behandler beskeden korrekt (f.eks. ved at kontrollere logs eller CSV-fil)
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Fejl under test: {ex.Message}");
+            Console.WriteLine($"StackTrace: {ex.StackTrace}");
+            throw;
+        }
     }
 
-    // Cleanup
     public void Dispose()
     {
-        _channel?.Close();
-        _connection?.Close();
+        try
+        {
+            _channel?.Close();
+            _connection?.Close();
+            Console.WriteLine("RabbitMQ forbindelser lukket");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Fejl ved oprydning: {ex.Message}");
+        }
     }
 }
