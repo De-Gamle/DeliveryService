@@ -2,7 +2,7 @@
 WORKDIR /src
 
 # Copy csproj and restore dependencies
-COPY ["ServiceWorker.csproj", "./"]
+COPY ["ServiceWorker/ServiceWorker.csproj", "./"]
 RUN dotnet restore
 
 # Copy all files and build
