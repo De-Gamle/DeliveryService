@@ -1,4 +1,4 @@
-name: Byg et Docker Image
+name: Byg Docker Image
 
 on:
   push:
