@@ -6,6 +6,7 @@ IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((hostContext, services) =>
     {
         // Register custom services
+        services.AddSingleton<IDeliveryDBRepository, DeliveryMongoDBService>();
         services.AddSingleton<BookingService>();
         services.AddSingleton<CsvService>();
         services.AddHostedService<Worker>();

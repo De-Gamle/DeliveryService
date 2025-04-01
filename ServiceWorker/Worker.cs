@@ -13,6 +13,7 @@ namespace ServiceWorker
         private readonly ILogger<Worker> _logger;
         private readonly BookingService _bookingService;
         private readonly CsvService _csvService;
+        private readonly IDeliveryDBRepository _deliveryDBRepository;
         private readonly IConfiguration _configuration;
         private IConnection? _connection;
         private IModel? _channel;
@@ -22,13 +23,15 @@ namespace ServiceWorker
             ILogger<Worker> logger, 
             BookingService bookingService, 
             CsvService csvService,
+            IDeliveryDBRepository deliveryDBRepository,
             IConfiguration configuration)
         {
             _logger = logger;
             _bookingService = bookingService;
             _csvService = csvService;
+            _deliveryDBRepository = deliveryDBRepository;
             _configuration = configuration;
-            
+        
             InitializeRabbitMQ();
         }
 
@@ -93,6 +96,9 @@ namespace ServiceWorker
                         
                         // Write to CSV
                         await _csvService.WriteShipmentToCsvAsync(shippingRequest);
+                        
+                        // Save to MongoDB
+                        await _deliveryDBRepository.CreateAsync(shippingRequest);
                         
                         // Print sorted list to console (for debugging)
                         var sortedBookings = _bookingService.GetAll();
